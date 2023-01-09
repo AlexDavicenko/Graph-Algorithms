@@ -1,5 +1,9 @@
-from visualisation_colors import Colors
+import sys
+import heapq
 
+
+from visualisation_colors import Colors
+from arrows import get_arrow_points
 
 class Graph:
     def __init__(self):
@@ -7,6 +11,8 @@ class Graph:
         self.edges = []
 
         self.selected_node = None
+        self.start_node = None
+        self.end_node = None
 
     def clear_screen(self):
         self.nodes = []
@@ -25,33 +31,11 @@ class Graph:
 
 
 class Node(Colors):
-
-    def __getstate__(self):
-        return {
-            "x": self.x,
-            "y": self.y,
-            "name": self.name,
-            "color": self.color,
-            "edges": self.edges,
-            "label": None
-        }
-    def __setstate__(self, state):
-        self.__dict__ = state
-
-    @staticmethod
-    def get_euclidean_distance(node1, node2):
-        return ((node1.x - node2.x) ** 2 + (node1.y - node2.y) ** 2) ** 0.5
-
-    @staticmethod
-    def get_manhattan_distance(node1, node2):
-        return abs(node1.x-node2.x) + abs(node1.y-node2.y)
-
-
-    def __init__(self, x, y, name, color):
+    def __init__(self, x, y, name):
         self.x = x
         self.y = y
         self.name = name
-        self.color = color
+        self.color = self.NODE_COLOR
 
         self.edges = []
         self.label = None
@@ -89,6 +73,8 @@ class Node(Colors):
     def set_as_end(self):
         self.color = self.END_COLOR
 
+    def set_as_shortest_path(self):
+        self.color = self.NODE_SHORTEST_PATH
     def reset(self):
         self.color = self.NODE_COLOR
 
@@ -100,13 +86,33 @@ class Node(Colors):
     def visited(self):
         return self.color == self.NODE_VISITED_COLOR
 
+    def __getstate__(self):
+        return {
+            "x": self.x,
+            "y": self.y,
+            "name": self.name,
+            "color": self.color,
+            "edges": self.edges,
+            "label": None
+        }
+    def __setstate__(self, state):
+        self.__dict__ = state
 
-# Undirected Unweighted Edge
+    @staticmethod
+    def get_euclidean_distance(node1, node2):
+        return ((node1.x - node2.x) ** 2 + (node1.y - node2.y) ** 2) ** 0.5
+
+    @staticmethod
+    def get_manhattan_distance(node1, node2):
+        return abs(node1.x-node2.x) + abs(node1.y-node2.y)
+
+
+# Undirected Unweighted edge
 class Edge(Colors):
-    def __init__(self, node1, node2, color, name = ""):
+    def __init__(self, node1, node2, name = ""):
         self.node1 = node1
         self.node2 = node2
-        self.color = color
+        self.color = self.EDGE_COLOR
         self.name = name
 
         self.label = None
@@ -132,58 +138,36 @@ class Edge(Colors):
         self.label_rect = self.label.get_rect()
         self.label_rect.center = ((self.node1.x + self.node2.x) // 2, (self.node1.y + self.node2.y) // 2)
 
-    def __getstate__(self):
-        return {
-            "node1": self.node1,
-            "node2": self.node2,
-            "color": self.color,
-            "name": self.name,
-            "label": None,
-            "label_rect": None
-        }
-
-    def __setstate__(self, state):
-        self.__dict__ = state
 
 # Undirected Weighted edge
 class WeightedEdge(Edge):
 
-    def __init__(self, node1, node2, color, weight):
+    def __init__(self, node1, node2, weight):
 
-        super().__init__(node1, node2, color, name = str(int(weight)))
+        super().__init__(node1, node2, name = str(int(weight)))
 
         self.weight = weight
 
-    def __getstate__(self):
-        return {
-            "node1": self.node1,
-            "node2": self.node2,
-            "color": self.color,
-            "name": self.name,
-            "weight": self.weight,
-            "label": None,
-            "label_rect": None
-        }
-
-    def __setstate__(self, state):
-        self.__dict__ = state
-
 # Directed edge
 class DirectedEdge(Edge):
-    def __init__(self, node1, node2, color, weight, label):
-        super().__init__(node1, node2, color, weight)
+    def __init__(self, node1, node2, name = ""):
+        super().__init__(node1, node2, name)
+
+        self.arrow_points = get_arrow_points(node1.x,node1.y, node2.x, node2.y)
 
     def add_edges(self):
         self.node1.add_edge(self.node2)
 
 # Directed Weighted edge
-class DirectedWeightedEdge(Edge):
-    def __init__(self):
-        super().__init__()
+class DirectedWeightedEdge(DirectedEdge):
+    def __init__(self, node1, node2, weight):
+        super().__init__(node1, node2)
+        self.weight = weight
 
-def bfs(start_node: Node, target: Node):
-    start_node.set_as_start()
-    queue = [start_node]
+def bfs(graph):
+    graph.start_node.set_as_start()
+    target = graph.end_node
+    queue = [graph.start_node]
     visited = set()
 
     while queue:
@@ -209,10 +193,67 @@ def bfs(start_node: Node, target: Node):
 
             if neighbour not in visited:
                 queue.append(neighbour)
+def dijkstra(graph: Graph):
 
-def dfs(start_node, target):
-    start_node.set_as_start()
-    stack = [start_node]
+    graph.start_node.set_as_start()
+    graph.end_node.set_as_end()
+
+    inf = sys.maxsize
+
+    heap = []
+    heapq.heappush(heap, (0,graph.start_node))
+
+    distances = {node.name: (inf, None) for node in graph.nodes}
+    distances[graph.start_node.name] = (0, None)
+
+
+    while heap:
+        distance, node = heapq.heappop(heap)
+
+        if node == graph.end_node:
+            break
+
+        # Visualising node visit
+        node.visit()
+        yield
+
+        # Check all neighbour
+        for neighbour in node.get_neighbours():
+
+            # Visualising edge visit
+            edge = node.get_edge(neighbour)
+            if not edge.is_visited():
+                edge.visit()
+                yield
+
+            # If the neighbour node has not been visited
+            if distances[neighbour.name][0] == inf:
+
+                # Push the neighbour onto the heap
+                heapq.heappush(heap, (distance+edge.weight, neighbour))
+
+            if distance + edge.weight < distances[neighbour.name][0]:
+                distances[neighbour.name] = (distance + edge.weight, node.name)
+
+
+    print(distances)
+
+    distance, node = distances[graph.end_node.name]
+    while node != graph.start_node.name:
+        graph.get_node_from_name(node).set_as_shortest_path()
+        yield
+        _, prev_node = distances[node]
+
+        node = prev_node
+
+
+
+
+
+def dfs(graph):
+    graph.start_node.set_as_start()
+    target = graph.end_node
+    stack = [graph.start_node]
     visited = set()
 
     while stack:
