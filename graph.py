@@ -3,7 +3,7 @@ import heapq
 
 
 from visualisation_colors import Colors
-from arrows import get_arrow_points
+from arrows import get_arrow_points, get_line_points
 
 class Graph:
     def __init__(self):
@@ -112,12 +112,14 @@ class Edge(Colors):
     def __init__(self, node1, node2, name = ""):
         self.node1 = node1
         self.node2 = node2
-        self.color = self.EDGE_COLOR
         self.name = name
+        self.add_edges()
+
+        self.color = self.EDGE_COLOR
 
         self.label = None
         self.label_rect = None
-        self.add_edges()
+        self.line_points = get_line_points(node1.x, node1.y, node2.x, node2.y, 5)
 
     def add_edges(self):
         self.node1.add_edge(self)
@@ -128,6 +130,7 @@ class Edge(Colors):
 
     def set_label(self, label):
         self.label = label
+
     def reset(self):
         self.color = self.EDGE_COLOR
 
@@ -148,15 +151,17 @@ class WeightedEdge(Edge):
 
         self.weight = weight
 
+
 # Directed edge
 class DirectedEdge(Edge):
-    def __init__(self, node1, node2, name = ""):
+    def __init__(self, node1, node2, name=""):
         super().__init__(node1, node2, name)
 
-        self.arrow_points = get_arrow_points(node1.x,node1.y, node2.x, node2.y)
+        self.arrow_points = get_arrow_points(node1.x, node1.y, node2.x, node2.y, 50, 3/4)
 
     def add_edges(self):
         self.node1.add_edge(self.node2)
+
 
 # Directed Weighted edge
 class DirectedWeightedEdge(DirectedEdge):

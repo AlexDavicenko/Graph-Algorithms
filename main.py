@@ -3,7 +3,7 @@ import pygame.gfxdraw
 import sys
 import pickle
 
-from arrows import draw_arrow
+from render import Render
 
 from threading import Thread
 
@@ -44,6 +44,7 @@ class Visualisation(Colors):
         self.window = pygame.display.set_mode((1280, 720))
         self.clock = pygame.time.Clock()
 
+        self.render = Render(self.window)
 
         self.NODE_LABEL_FONT = pygame.font.SysFont("arial", 20)
 
@@ -257,56 +258,40 @@ class Visualisation(Colors):
                     if self.graph.selected_node:
                         print(self.graph.selected_node.get_neighbours())
 
-
-    def render(self):
+    def update_window(self):
         # Order
         # Background -> Edges -> Edge labels -> Edge line -> Nodes -> Node Labels -> Selected Node
         self.window.fill((255, 255, 255))
 
         # Edges
         for edge in self.graph.edges:
-            pygame.draw.line(
-                self.window,
-                edge.color,
-                (edge.node1.x, edge.node1.y),
-                (edge.node2.x, edge.node2.y),
-                5
-            )
-            #Arrows
-            if isinstance(edge, DirectedEdge):
-                u = 0.75
-                x1 = edge.node1.x
-                y1 = edge.node1.y
-                x2 = edge.node2.x
-                y2 = edge.node2.y
-                ux, uy = x1 + u * (x2 - x1), y1 + u * (y2 - y1)
 
-                draw_arrow(self.window, pygame.Vector2(x1,y1), pygame.Vector2(ux, uy), (0,0,0), head_height= 25, head_width=25)
-                #pygame.draw.polygon(self.window, edge.color, edge.arrow_points)
+            self.render.edge(
+                edge.line_points,
+                edge.color,
+            )
+            if isinstance(edge, DirectedEdge):
+                self.render.arrow(
+                    edge.arrow_points,
+                    self.ARROW_COLOR
+                )
 
             # Edge Labels
             self.window.blit(edge.label, edge.label_rect)
+
         # Edge line
         if self.graph.selected_node and self.mode == "edit":
             mx, my = pygame.mouse.get_pos()
             pygame.draw.line(self.window, (120,120,120), (self.graph.selected_node.x, self.graph.selected_node.y), (mx, my), 5)
         # Nodes
         for node in self.graph.nodes:
+            if node == self.graph.selected_node:
+                continue
+            pygame.gfxdraw.filled_circle(self.window,node.x,node.y, self.node_radius, self.NODE_BORDER_COLOR)
+            pygame.gfxdraw.filled_circle(self.window,node.x,node.y, self.node_radius-2, node.color)
             pygame.gfxdraw.aacircle(self.window,node.x,node.y, self.node_radius, self.NODE_BORDER_COLOR)
-            """
-            pygame.draw.circle(
-                self.window,
-                self.NODE_BORDER_COLOR,
-                (node.x, node.y),
-                self.node_radius,
-            )
-            pygame.draw.circle(
-                self.window,
-                node.color,
-                (node.x, node.y),
-                self.node_radius-2,
-            )
-            """
+            pygame.gfxdraw.aacircle(self.window,node.x,node.y, self.node_radius-2, node.color)
+
             # Node labels
             if node.label:
                 node_label_rect = node.label.get_rect()
@@ -315,18 +300,14 @@ class Visualisation(Colors):
 
         # Selected node highlight
         if self.graph.selected_node:
-            pygame.draw.circle(
-                self.window,
-                self.NODE_SELECTED_BORDER_COLOR,
-                (self.graph.selected_node.x, self.graph.selected_node.y),
-                self.node_radius
-            )
-            pygame.draw.circle(
-                self.window,
-                self.graph.selected_node.color,
-                (self.graph.selected_node.x, self.graph.selected_node.y),
-                self.node_radius-2
-            )
+            x = self.graph.selected_node.x
+            y = self.graph.selected_node.y
+
+            pygame.gfxdraw.filled_circle(self.window, x, y, self.node_radius, self.NODE_SELECTED_BORDER_COLOR)
+            pygame.gfxdraw.filled_circle(self.window, x, y, self.node_radius-3, self.graph.selected_node.color)
+            pygame.gfxdraw.aacircle(self.window, x, y, self.node_radius, self.NODE_SELECTED_BORDER_COLOR)
+            pygame.gfxdraw.aacircle(self.window, x, y, self.node_radius-3, self.graph.selected_node.color)
+
             # Render the selected node label again
             node_label_rect = self.graph.selected_node.label.get_rect()
             node_label_rect.center = (self.graph.selected_node.x, self.graph.selected_node.y)
@@ -341,7 +322,7 @@ class Visualisation(Colors):
             self.eventloop()
             self.visualisation_utility.run_visualisations()
 
-            self.render()
+            self.update_window()
 
 
 if __name__ == "__main__":

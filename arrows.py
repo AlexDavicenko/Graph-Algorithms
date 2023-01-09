@@ -1,30 +1,48 @@
-import pygame
-import pygame.gfxdraw
+from typing import List
+from pygame import Vector2
 
-def draw_arrow(
-        surface: pygame.Surface,
-        start: pygame.Vector2,
-        end: pygame.Vector2,
-        color: pygame.Color,
-        head_width: int = 4,
-        head_height: int = 2,
-    ):
 
-    arrow = start - end
-    angle = arrow.angle_to(pygame.Vector2(0, -1))
+def get_line_points(x1, y1, x2, y2, width) -> List[Vector2]:
+    start = Vector2(x1, y1)
+    end = Vector2(x2, y2)
 
-    # Create the triangle head around the origin
-    head_verts = [
-        pygame.Vector2(0, head_height / 2),  # Center
-        pygame.Vector2(head_width / 2, -head_height / 2),  # Bottomright
-        pygame.Vector2(-head_width / 2, -head_height / 2),  # Bottomleft
+    line_vector = start - end
+
+    angle = line_vector.angle_to(Vector2(0, -1))
+
+    points = [
+        Vector2(-width/2, 0),
+        Vector2(width/2, 0),
+        Vector2(width/2, line_vector.length()),
+        Vector2(-width/2, line_vector.length())
     ]
-    # Rotate and translate the head into place
-    translation = pygame.Vector2(0, arrow.length() - (head_height / 2)).rotate(-angle)
-    for i in range(len(head_verts)):
-        head_verts[i].rotate_ip(-angle)
-        head_verts[i] += translation
-        head_verts[i] += start
+    for p in range(len(points)):
+        points[p].rotate_ip(-angle)
+        points[p] += start
+    return points
 
-    pygame.gfxdraw.filled_polygon(surface, head_verts, color)
-    pygame.gfxdraw.aapolygon(surface, head_verts, color)
+
+def get_arrow_points(x1, y1, x2, y2, size, d=0.75) -> List[Vector2]:
+
+    start = Vector2(x1, y1)
+
+    end = Vector2(x1 + d * (x2 - x1), y1 + d * (y2 - y1))
+
+    arrow_vector = start - end
+    angle = arrow_vector.angle_to(Vector2(0, -1))
+
+    points = [
+        Vector2(0, size / 4),  # Center
+        Vector2(size / 4, -size / 4),  # Bottom right
+        Vector2(-size / 4, -size / 4),  # Bottom left
+    ]
+
+    # Rotate and translate the head into place
+    translation = Vector2(0, arrow_vector.length() - (size / 4)).rotate(-angle)
+    for p in range(len(points)):
+        points[p].rotate_ip(-angle)
+        points[p] += translation
+        points[p] += start
+
+    return points
+
