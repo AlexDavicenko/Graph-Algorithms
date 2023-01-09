@@ -275,9 +275,11 @@ class Visualisation(Colors):
                     edge.arrow_points,
                     self.ARROW_COLOR
                 )
-
-            # Edge Labels
-            self.window.blit(edge.label, edge.label_rect)
+            if edge.label:
+                # Edge Labels
+                self.window.blit(edge.label, edge.label_rect)
+            else:
+                print("skipped frame")
 
         # Edge line
         if self.graph.selected_node and self.mode == "edit":
@@ -287,10 +289,14 @@ class Visualisation(Colors):
         for node in self.graph.nodes:
             if node == self.graph.selected_node:
                 continue
-            pygame.gfxdraw.filled_circle(self.window,node.x,node.y, self.node_radius, self.NODE_BORDER_COLOR)
-            pygame.gfxdraw.filled_circle(self.window,node.x,node.y, self.node_radius-2, node.color)
-            pygame.gfxdraw.aacircle(self.window,node.x,node.y, self.node_radius, self.NODE_BORDER_COLOR)
-            pygame.gfxdraw.aacircle(self.window,node.x,node.y, self.node_radius-2, node.color)
+            self.render.node(
+                node.x,
+                node.y,
+                self.node_radius,
+                3,
+                node.color,
+                self.NODE_BORDER_COLOR
+            )
 
             # Node labels
             if node.label:
@@ -300,13 +306,14 @@ class Visualisation(Colors):
 
         # Selected node highlight
         if self.graph.selected_node:
-            x = self.graph.selected_node.x
-            y = self.graph.selected_node.y
-
-            pygame.gfxdraw.filled_circle(self.window, x, y, self.node_radius, self.NODE_SELECTED_BORDER_COLOR)
-            pygame.gfxdraw.filled_circle(self.window, x, y, self.node_radius-3, self.graph.selected_node.color)
-            pygame.gfxdraw.aacircle(self.window, x, y, self.node_radius, self.NODE_SELECTED_BORDER_COLOR)
-            pygame.gfxdraw.aacircle(self.window, x, y, self.node_radius-3, self.graph.selected_node.color)
+            self.render.node(
+                self.graph.selected_node.x,
+                self.graph.selected_node.y,
+                self.node_radius,
+                3,
+                self.graph.selected_node.color,
+                self.NODE_SELECTED_BORDER_COLOR
+            )
 
             # Render the selected node label again
             node_label_rect = self.graph.selected_node.label.get_rect()
